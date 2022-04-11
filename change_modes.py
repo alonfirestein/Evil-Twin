@@ -1,19 +1,26 @@
 import os
+import sys
 
+iface = sys.argv[1]
 
-def active_monitor_mode(interface):
-    os.system("sudo ip link set "+ interface+ " down")
-    os.system("sudo iw "+ interface+  " set monitor none")
-    os.system("sudo ip link set "+ interface+ " up")
-    return interface
+def active_monitor_mode(iface):
+    os.system("sudo ifconfig "+ iface+ " down")
+    os.system("sudo iwconfig "+ iface+  " mode monitor")
+    os.system("sudo ifconfig "+ iface+ " up")
+    return iface
     
     
-def monitor_mode_airmon(interface):
+def monitor_mode_airmon(iface):
     os.system("sudo airmon-ng check kill")
-    os.system("sudo airmon-ng start "+ interface)
-    interface = str(interface)+'mon'
-    return interface
+    os.system("sudo airmon-ng start "+ iface)
+    interface = str(iface)+'mon'
+    return iface
+    
+    
 
 
+
+active_monitor_mode(iface)
+monitor_mode_airmon(iface)
 
 
