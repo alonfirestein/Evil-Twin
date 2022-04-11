@@ -20,7 +20,6 @@ def active_monitor_mode(iface):
 def monitor_mode_airmon(iface):
     os.system("sudo airmon-ng check kill")
     os.system("sudo airmon-ng start "+ iface)
-    iface = str(iface)+'mon'
     return iface
     
     
