@@ -66,6 +66,7 @@ def stop_ap():
 
 def enable_nat(eth):
     """
+    iptables is a command-line firewall utility that uses policy chains to allow or block traffic.
     Masquerade is an algorithm dependant on the iptables implementation that allows one to route traffic without
     disrupting the original traffic. We use it when creating a virtual wifi adapter and share our wifi connection via masquerading
     it to a virtual adapter. In other words... "Share our wifi connection through wifi"
