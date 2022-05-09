@@ -8,7 +8,7 @@ def init_attack_mode():
     os.system("sudo airmon-ng check kill")
     
     
-def active_monitor_mode(iface):
+def activate_monitor_mode(iface):
     print("Activating monitor mode...")
     #os.system("sudo service network-manager restart")
     #os.system("sudo airmon-ng check kill")
@@ -22,14 +22,15 @@ def active_monitor_mode(iface):
 
 def deactivate_monitor_mode(iface):
     print("Deactivating monitor mode")
-    os.system(f"sudo airmon-ng stop {iface}")
-    os.system("sudo systemctl start NetworkManager") 
-    print("Monitor mode deactivated!")
-    
+    # os.system(f"sudo airmon-ng stop {iface}")
+    # os.system("sudo systemctl start NetworkManager")
+    os.system(f"sudo ifconfig {iface} down")
+    os.system(f"sudo iwconfig {iface} mode managed")
+    os.system(f"sudo ifconfig {iface} up")
+    print("Monitor mode deactivated and activated managed mode! ")
 
 
-# Running needed commands
-#init_attack_mode()
-#active_monitor_mode(iface)
-#deactivate_monitor_mode(iface)
+# init_attack_mode()
+# activate_monitor_mode(iface)
+# deactivate_monitor_mode(iface)
 

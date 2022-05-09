@@ -27,7 +27,9 @@ def create_hostapd_file(iface, ssid):
         conf_file.write(conf_data)
     os.chmod("conf_files/hostapd.conf", 0o777)
 
-# Dynamic Host Configuration Protocol (DHCP) is a client/server protocol that automatically provides an IP host with its IP address and other related configuration information such as the subnet mask and default gateway.
+
+# Dynamic Host Configuration Protocol (DHCP) is a client/server protocol that automatically provides an IP host with its
+# IP address and other related configuration information such as the subnet mask and default gateway.
 # dhcp option=3: IP gateway, option=6: DNS server 
 def create_dnsmasq_file(iface):
     iface = f"interface={str(iface)}\n"
@@ -44,7 +46,10 @@ def create_dnsmasq_file(iface):
 
 
 def delete_conf_files():
-    os.system("rm conf_files/*.conf")
+    try:
+        os.system("rm conf_files/*.conf")
+    except:
+        print("No configuration files to delete...")
 
 
 # Start and run AP connection using built conf hostapd and dnsmasq files
@@ -57,19 +62,42 @@ def start_ap():
     os.system("sudo dnsmasq -C conf_files/dnsmasq.conf")
 
 
-def stop_ap():
-    os.system("sudo systemctl stop hostapd")
-    os.system("sudo systemctl stop dnsmasq")
-    os.system("sudo killall dnsmasq")
-    os.system("sudo killall hostapd")
-
-
 def enable_nat(eth):
     """
     iptables is a command-line firewall utility that uses policy chains to allow or block traffic.
     Masquerade is an algorithm dependant on the iptables implementation that allows one to route traffic without
-    disrupting the original traffic. We use it when creating a virtual wifi adapter and share our wifi connection via masquerading
-    it to a virtual adapter. In other words... "Share our wifi connection through wifi"
+    disrupting the original traffic. We use it when creating a virtual wifi adapter and share our wifi connection via
+    masquerading it to a virtual adapter. In other words... "Share our wifi connection through wifi"
     """
     os.system(f"sudo iptables -t nat -A POSTROUTING -o {eth} -j MASQUERADE")
+
+
+def reset():
+    delete_conf_files()
+    # os.system("sudo service NetworkManager start")
+    os.system("sudo systemctl stop hostapd")
+    os.system("sudo systemctl stop dnsmasq")
+    os.system("sudo killall dnsmasq")
+    os.system("sudo killall hostapd")
+    # os.system("sudo systemctl enable systemd-resolved.service")
+    os.system("sudo systemctl disable systemd-resolved")
+    # os.system("sudo systemctl start systemd-resolved")
+    os.system("sudo systemctl mask systemd-resolved")
+    os.system("sudo systemctl stop systemd-resolved")
+
+
+def kill_processes():
+    os.system("sudo pkill -9 hostapd")
+    os.system("sudo pkill -9 dnsmasq")
+    # os.system("sudo pkill -9 wpa_supplicant")
+    # os.system("sudo pkill -9 avahi-daemon")
+    # os.system("sudo pkill -9 dhclient")
+
+
+def ip_tables_config():
+    os.system("sudo iptables --flush")
+    os.system("sudo iptables --table nat --flush")
+    os.system("sudo iptables --delete-chain")
+    os.system("sudo iptables --table nat --delete-chain")
+    os.system("sudo iptables -P FORWARD ACCEPT")
 

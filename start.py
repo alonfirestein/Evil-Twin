@@ -2,7 +2,7 @@ from scapy.all import *
 import os
 import sys
 import time
-
+import defense
 import attack
 import helper
 import change_modes
@@ -20,7 +20,7 @@ def main():
         attack.network_attack(iface)    
     
     if chosen_type == 2:
-        pass
+        defense.defend(iface)
         
     if chosen_type == 3:
         print("Thanks for using our Evil Twin Program!")
