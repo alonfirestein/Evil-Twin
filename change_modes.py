@@ -3,10 +3,10 @@ import sys
 
 
 # Activating monitor mode with required interface name
-def init_attack_mode():
-    os.system("sudo NetworkManager stop")
-    os.system("sudo airmon-ng check kill")
-    
+# def init_attack_mode():
+#     os.system("sudo NetworkManager stop")
+#     os.system("sudo airmon-ng check kill")
+
     
 def activate_monitor_mode(iface):
     print("Activating monitor mode...")
@@ -27,7 +27,7 @@ def deactivate_monitor_mode(iface):
     os.system(f"sudo ifconfig {iface} down")
     os.system(f"sudo iwconfig {iface} mode managed")
     os.system(f"sudo ifconfig {iface} up")
-    print("Monitor mode deactivated and activated managed mode! ")
+    print("Monitor mode deactivated and activated managed mode!")
 
 
 # init_attack_mode()

@@ -74,21 +74,25 @@ def enable_nat(eth):
 
 def reset():
     delete_conf_files()
-    # os.system("sudo service NetworkManager start")
+    os.system("sudo service NetworkManager start")
     os.system("sudo systemctl stop hostapd")
     os.system("sudo systemctl stop dnsmasq")
     os.system("sudo killall dnsmasq")
     os.system("sudo killall hostapd")
-    # os.system("sudo systemctl enable systemd-resolved.service")
-    os.system("sudo systemctl disable systemd-resolved")
-    # os.system("sudo systemctl start systemd-resolved")
-    os.system("sudo systemctl mask systemd-resolved")
-    os.system("sudo systemctl stop systemd-resolved")
+    os.system("sudo systemctl enable systemd-resolved.service")
+    # os.system("sudo systemctl disable systemd-resolved")
+    os.system("sudo systemctl start systemd-resolved")
+    # os.system("sudo systemctl mask systemd-resolved")
+    # os.system("sudo systemctl stop systemd-resolved")
 
 
 def kill_processes():
-    os.system("sudo pkill -9 hostapd")
-    os.system("sudo pkill -9 dnsmasq")
+    os.system("sudo systemctl disable systemd-resolved.service")
+    os.system("sudo systemctl stop systemd-resolved")
+    os.system("sudo service NetworkManager stop")
+    os.system("sudo airmon-ng check kill")
+    # os.system("sudo pkill -9 hostapd")
+    # os.system("sudo pkill -9 dnsmasq")
     # os.system("sudo pkill -9 wpa_supplicant")
     # os.system("sudo pkill -9 avahi-daemon")
     # os.system("sudo pkill -9 dhclient")
