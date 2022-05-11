@@ -5,7 +5,6 @@ import time
 import defense
 import attack
 import helper
-import change_modes
 
 
 def main():
@@ -20,7 +19,7 @@ def main():
         attack.network_attack(iface)    
     
     if chosen_type == 2:
-        defense.defend(iface)
+        defense.defend(iface, 20)
         
     if chosen_type == 3:
         print("Thanks for using our Evil Twin Program!")
