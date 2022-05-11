@@ -150,6 +150,7 @@ def activate_fake_ap(iface, ssid):
     # os.system("sudo service NetworkManager stop")
     helper.kill_processes()
     helper.create_hostapd_file(iface, ssid)
+    helper.enable_nat("enp2s0f0", iface)
     # Start the fake access point in new terminal
     os.system("sudo gnome-terminal -- sh -c 'sudo hostapd conf_files/hostapd.conf -B; read line'")
 

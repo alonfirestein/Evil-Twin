@@ -14,8 +14,6 @@ attack_recognized = False
 
 def get_network_mac():
     global ap_mac_addr
-    # print("Please enter the MAC address of the WIFI network you are connected to.\n"
-    #       "The wireless MAC address will be in the field labeled 'HWaddr'.")
     str(os.system("iwconfig | grep 'Access Point' | tail -1 > ap_mac.txt"))
     with open("ap_mac.txt", 'r') as file:
         ap_mac = file.readline().split("Access Point:")[1].strip()
@@ -45,6 +43,10 @@ def defense_handler(pkt):
 
 
 def defend(iface, timeout=60):
+    print("Starting defense protocol from Evil Twin Attack...")
     get_network_mac()
+    if timeout == -1:
+        timeout = sys.maxsize  # Sniff for a long...long time
+    print(f"The timeout is: {timeout} of type: {type(timeout)}")
     sniff(iface=iface, count=0, prn=defense_handler, timeout=timeout)
 

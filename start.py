@@ -19,7 +19,13 @@ def main():
         attack.network_attack(iface)    
     
     if chosen_type == 2:
-        defense.defend(iface, 20)
+        timeout = input("\nFor how long would you like to run the 'Evil Twin Defense Tool'?\n"
+                        "(-1 for unlimited until manually stopped) - ")
+        if timeout.isnumeric():
+            timeout = int(timeout)
+        else:
+            timeout = int(input("\nPlease enter a number in seconds (-1 for unlimited until manually stopped) - "))
+        defense.defend(iface, timeout)
         
     if chosen_type == 3:
         print("Thanks for using our Evil Twin Program!")
