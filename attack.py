@@ -200,7 +200,7 @@ def network_attack(iface):
     # create_fake_ap(iface, victim, ap_name="FakeAPHere!")
     activate_fake_ap(iface, ssid=ap_name)
 
-    deactivate = input("To deactivate the fake AP, enter 'Y'...")
+    deactivate = input("\n\nTo deactivate the fake AP, enter 'Y'...")
     if deactivate.lower() == 'y' or deactivate.lower() == 'yes':
         deactivate_fake_ap()
 
