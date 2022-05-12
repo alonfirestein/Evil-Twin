@@ -9,6 +9,11 @@ def init_attack_mode():
 
     
 def activate_monitor_mode(iface):
+    """
+    Activating monitor mode
+    :param iface: interface name
+    :return:
+    """
     print("Activating monitor mode...")
     os.system(f"sudo airmon-ng start {iface}")
     os.system(f"sudo ip link set wlan0mon down")
@@ -24,6 +29,11 @@ def activate_monitor_mode(iface):
     
 
 def deactivate_monitor_mode(iface):
+    """
+    Deactivating monitor mode back to managed mode
+    :param iface: interface name
+    :return:
+    """
     print("Deactivating monitor mode")
     os.system(f"sudo ifconfig {iface} down")
     os.system(f"sudo iwconfig {iface} mode managed")

@@ -2,7 +2,6 @@ from scapy.all import *
 import os
 import sys
 import time
-from scapy.layers.dot11 import Dot11, RadioTap, Dot11Deauth, Dot11Beacon, Dot11Elt
 import change_modes
 import helper
 import attack
@@ -13,15 +12,28 @@ attack_recognized = False
 
 
 def get_network_mac():
+    """
+    Function to find the network mac address that the user is connected to and saves it to a txt file.
+    :return:
+    """
     global ap_mac_addr
-    str(os.system("iwconfig | grep 'Access Point' | tail -1 > ap_mac.txt"))
+    os.system("sudo rm ap_mac.txt")
+    os.system("iwconfig | grep 'Access Point' | tail -1 > ap_mac.txt")
     with open("ap_mac.txt", 'r') as file:
         ap_mac = file.readline().split("Access Point:")[1].strip()
         ap_mac_addr = ap_mac
 
 
 def defense_handler(pkt):
+    """
+    The handler for the sniffing in the defense function below.
+    Looks for and finds deauthorization packets and alerts the user and makes changes if necessary to defend
+    the user from a captive portal attack.
+    :param pkt: packet
+    :return:
+    """
     global pkt_counter, ap_mac_addr, attack_recognized
+    print('.')
     gmt_time = time.gmtime(time.time())
     # Packet type 0 & subtype 12 => de-authentication packet.
     if pkt.type == 0 and pkt.subtype == 12 and ap_mac_addr == str(pkt.addr2):
@@ -43,10 +55,18 @@ def defense_handler(pkt):
 
 
 def defend(iface, timeout=60):
-    print("Starting defense protocol from Evil Twin Attack...")
+    """
+    Main function for the defense tool. Gets the network mac address that the user is connected to and sniffs
+    packets on it to find deauthorization packets and alerts the user and makes changes if necessary to defend
+    the user from a captive portal attack.
+    :param iface: interface name
+    :param timeout: length of time in seconds that the defense tool is active
+    :return:
+    """
+    print("\n\nStarting defense protocol from Evil Twin Attack...\n")
     get_network_mac()
-    if timeout == -1:
-        timeout = sys.maxsize  # Sniff for a long...long time
-    print(f"The timeout is: {timeout} of type: {type(timeout)}")
+    if timeout == 0:
+        timeout = 100000  # Sniff for a long...long time
+    change_modes.activate_monitor_mode(iface)
     sniff(iface=iface, count=0, prn=defense_handler, timeout=timeout)
 
