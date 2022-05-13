@@ -8,7 +8,7 @@ This project includes the methods used for an Evil Twin attack, as well as a def
 
 ### Prerequisite:
 - A laptop with a NIC that can enter [monitor mode](https://en.wikipedia.org/wiki/Monitor_mode)
-- Or a external wifi adapter that can be conncted and enable [monitor mode](https://en.wikipedia.org/wiki/Monitor_mode)
+- Or an external wifi adapter that can be conncted and enable [monitor mode](https://en.wikipedia.org/wiki/Monitor_mode)
 - Libraries and tools used: Python 3.8+, Scapy, airmon-ng, hostapd, iptables, gnome-terminal, apache2, net-tools 
 
 *Note** - This program was written and tested on Ubuntu 20.04, but should work on most Linux machines.  
